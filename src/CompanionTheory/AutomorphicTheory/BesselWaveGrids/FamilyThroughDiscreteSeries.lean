@@ -84,38 +84,26 @@ theorem family_through_discreteSeries : Hyps → ∀ (k r : ℕ) (lam : Fin (2 *
   intro hH k r lam u b bv ga h q0 R0 ν₀ hN hR0
   classical
   have hex : DSExist := hH.2.2.2.1
-  have hC : ∃ P, PI.UpqRep.IsCayleyU k r (PI.BesselPeriodGGP.eps48 k r) P := by
-    obtain ⟨P, hP, -⟩ := hR0.2
-    exact ⟨P, hP⟩
   have hfam := (GlobalTheory.T.numericalFamily_shape_gaps k r lam u b bv ga h q0 hN).2
   have key : ∀ ν : Fin (2 * r + k + 1) → ℤ, ∃ R : Rep k r,
-      (∑ a, (ν a).natAbs ≤ q0 → R.IsDS (PI.BesselPeriodGGP.eps48 k r) (fun a => lam a + (ν a : ℝ))) ∧
-      (ν = ν₀ → R = R0) := by
-    intro ν
-    by_cases h0 : ν = ν₀
-    · refine ⟨R0, fun _ => ?_, fun _ => rfl⟩
-      subst h0
-      exact hR0
-    · by_cases hq : ∑ a, (ν a).natAbs ≤ q0
-      · obtain ⟨R, hR⟩ := hex k r _ _ (hfam ν hq).1 hC
-        exact ⟨R, fun _ => hR, fun h => absurd h h0⟩
-      · exact ⟨R0, fun h => absurd h hq, fun _ => rfl⟩
+      ∑ a, (ν a).natAbs ≤ q0 → R.IsDS (PI.BesselPeriodGGP.eps48 k r) (fun a => lam a + (ν a : ℝ)) := fun ν =>
+    if hq : ∑ a, (ν a).natAbs ≤ q0 then (hex k r _ _ (hfam ν hq).1 (hR0.2.imp fun _ h => h.1)).imp fun _ h _ => h
+    else ⟨R0, fun h => absurd h hq⟩
   choose R hR using key
-  exact ⟨R, fun ν hν => (hR ν).1 hν, (hR ν₀).2 rfl⟩
+  refine ⟨Function.update R ν₀ R0, fun ν hν => ?_, Function.update_self ..⟩
+  rcases eq_or_ne ν ν₀ with rfl | hne
+  · simpa using hR0
+  · simpa [Function.update_of_ne hne] using hR ν hν
 
 theorem exists_coef_family : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAddCommGroup Wp] [InnerProductSpace ℂ Wp] [NormedAddCommGroup Wq] [InnerProductSpace ℂ Wq] [FiniteDimensional ℂ Wp] [FiniteDimensional ℂ Wq] (p : KB.Pl P Wp Wq) (lam : Fin (2 * P.r + P.k + 1) → ℝ) (b bv ga h : ℝ) (q0 : ℕ) (R : (Fin (2 * P.r + P.k + 1) → ℤ) → Rep P.k P.r) (l : ∀ ν, (R ν).H → Wp) (l' : ∀ ν, (R ν).H → Wq) (dg : (Fin (2 * P.r + P.k + 1) → ℤ) → ℝ) (f : B.Mat P.k P.r → (Wq →L[ℂ] Wp)) (s₀ : ℂ) (ν₀ : Fin (2 * P.r + P.k + 1) → ℤ), n1 ν₀ ≤ q0 → IsFam lam q0 R → (haveI := FiniteDimensional.complete ℂ Wp; SideFam p.T.base.z p.T.base.π p.T.base.μW p.T.base.μN p.T.base.μG q0 R l dg) → (haveI := FiniteDimensional.complete ℂ Wq; SideFam p.T.base.z' p.T.base.π' p.T.base.μW' p.T.base.μN p.T.base.μG q0 R l' dg) → IsCoef (R ν₀) (l ν₀) (l' ν₀) f s₀ → s₀ ≠ 0 → ∃ (s : (Fin (2 * P.r + P.k + 1) → ℤ) → ℂ) (J : (Fin (2 * P.r + P.k + 1) → ℤ) → B.Mat P.k P.r → (Wq →L[ℂ] Wp)) (t : ℝ), 0 < t ∧ J ν₀ = (fun g => (t : ℂ) • f g) ∧ (NzOn (R ν₀) (l ν₀) ∧ NzOn (R ν₀) (l' ν₀)) ∧ (∀ ν, n1 ν ≤ q0 → NzOn (R ν) (l ν) → NzOn (R ν) (l' ν) → IsCoef (R ν) (l ν) (l' ν) (J ν) (s ν) ∧ ‖s ν‖ = dg ν) ∧ (∀ ν, ¬ (n1 ν ≤ q0 ∧ NzOn (R ν) (l ν) ∧ NzOn (R ν) (l' ν)) → J ν = 0) := by
   intro hH P Wp Wq _ _ _ _ _ _ p lam b bv ga h q0 R l l' dg f s₀ ν₀ h0 hfam hL hR hf hs₀
-  haveI := FiniteDimensional.complete ℂ Wp
-  haveI := FiniteDimensional.complete ℂ Wq
   classical
   have hK : PI.KFinSmooth := hH.1.2.2.1
-  have hDS : ∀ ν, n1 ν ≤ q0 → (R ν).IsDS (PI.BesselPeriodGGP.eps48 P.k P.r) (fun a => lam a + (ν a : ℝ)) :=
-    fun ν hν => hfam ν hν
   have hdg0 : 0 < dg ν₀ := (hL ν₀ h0).2.1
   have hsn : 0 < ‖s₀‖ := norm_pos_iff.mpr hs₀
   have hnz : NzOn (R ν₀) (l ν₀) ∧ NzOn (R ν₀) (l' ν₀) := by
     obtain ⟨m, x, y, X, hxy, -, hs⟩ := hf
-    have hsm := (GlobalTheory.rep_basic_of_isDS hK _ _ _ _ (R ν₀) (hDS ν₀ h0)).2.2.2.2.1
+    have hsm := (GlobalTheory.rep_basic_of_isDS hK _ _ _ _ (R ν₀) (hfam ν₀ h0)).2.2.2.2.1
     rw [hs] at hs₀
     obtain ⟨i, -, hi⟩ := Finset.exists_ne_zero_of_sum_ne_zero hs₀
     refine ⟨⟨x i, hsm _ (hxy i).1, fun h => hi ?_⟩, ⟨y i, hsm _ (hxy i).2, fun h => hi ?_⟩⟩
@@ -129,16 +117,16 @@ theorem exists_coef_family : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAddC
     by_cases hν : ν = ν₀
     · subst ν
       refine ⟨((dg ν₀ / ‖s₀‖ : ℝ) : ℂ) * s₀, _, fun _ => rfl, fun _ _ _ => ⟨?_, ?_⟩, fun hn => ?_⟩
-      · exact (GlobalTheory.isCoef_of_translate_smul_exists hK _ _ _ _ (R ν₀) Wp Wq (l ν₀) (l' ν₀) (hDS ν₀ h0)).2.1 f s₀ _ hf
+      · exact (GlobalTheory.isCoef_of_translate_smul_exists hK _ _ _ _ (R ν₀) Wp Wq (l ν₀) (l' ν₀) (hfam ν₀ h0)).2.1 f s₀ _ hf
       · rw [norm_mul, Complex.norm_real, Real.norm_of_nonneg (div_pos hdg0 hsn).le]
         field_simp
       · exact absurd ⟨h0, hnz⟩ hn
     · by_cases hc : n1 ν ≤ q0 ∧ NzOn (R ν) (l ν) ∧ NzOn (R ν) (l' ν)
       · obtain ⟨h1, h2, h3⟩ := hc
-        have e1 := GlobalTheory.bessel_nonzero_on_translates hH _ _ _ _ (R ν) Wp _ _ (l ν) (hDS ν h1) (hL ν h1).1.1 h2
-        have e2 := GlobalTheory.bessel_nonzero_on_translates hH _ _ _ _ (R ν) Wq _ _ (l' ν) (hDS ν h1) (hR ν h1).1.1 h3
+        have e1 := GlobalTheory.bessel_nonzero_on_translates hH _ _ _ _ (R ν) Wp _ _ (l ν) (hfam ν h1) (hL ν h1).1.1 h2
+        have e2 := GlobalTheory.bessel_nonzero_on_translates hH _ _ _ _ (R ν) Wq _ _ (l' ν) (hfam ν h1) (hR ν h1).1.1 h3
         obtain ⟨F, hF⟩ := (GlobalTheory.isCoef_of_translate_smul_exists hK _ _ _ _ (R ν) Wp Wq (l ν) (l' ν)
-          (hDS ν h1)).2.2 e1 e2 (dg ν : ℂ)
+          (hfam ν h1)).2.2 e1 e2 (dg ν : ℂ)
         refine ⟨_, F, fun h => absurd h hν, fun _ _ _ => ⟨hF, ?_⟩, fun hn => absurd ⟨h1, h2, h3⟩ hn⟩
         rw [Complex.norm_real, Real.norm_of_nonneg (hL ν h1).2.1.le]
       · exact ⟨0, 0, fun h => absurd h hν, fun h1 h2 h3 => absurd ⟨h1, h2, h3⟩ hc, fun _ => rfl⟩
@@ -148,8 +136,6 @@ theorem exists_coef_family : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAddC
 theorem exists_tau : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAddCommGroup Wp] [InnerProductSpace ℂ Wp] [NormedAddCommGroup Wq] [InnerProductSpace ℂ Wq] [FiniteDimensional ℂ Wp] [FiniteDimensional ℂ Wq] (p : KB.Pl P Wp Wq) (lam : Fin (2 * P.r + P.k + 1) → ℝ) (b bv ga h : ℝ) (q0 : ℕ) (R : (Fin (2 * P.r + P.k + 1) → ℤ) → Rep P.k P.r) (l : ∀ ν, (R ν).H → Wp) (l' : ∀ ν, (R ν).H → Wq) (dg : (Fin (2 * P.r + P.k + 1) → ℤ) → ℝ) (s : (Fin (2 * P.r + P.k + 1) → ℤ) → ℂ) (J : (Fin (2 * P.r + P.k + 1) → ℤ) → B.Mat P.k P.r → (Wq →L[ℂ] Wp)), Num P.k P.r lam P.u b bv ga h q0 → IsFam lam q0 R → (haveI := FiniteDimensional.complete ℂ Wp; SideFam p.T.base.z p.T.base.π p.T.base.μW p.T.base.μN p.T.base.μG q0 R l dg) → (haveI := FiniteDimensional.complete ℂ Wq; SideFam p.T.base.z' p.T.base.π' p.T.base.μW' p.T.base.μN p.T.base.μG q0 R l' dg) → (∀ ν, n1 ν ≤ q0 → NzOn (R ν) (l ν) → NzOn (R ν) (l' ν) → IsCoef (R ν) (l ν) (l' ν) (J ν) (s ν) ∧ ‖s ν‖ = dg ν) → (∀ ν, ¬ (n1 ν ≤ q0 ∧ NzOn (R ν) (l ν) ∧ NzOn (R ν) (l' ν)) → J ν = 0) → ∃ tau, Sup0 p lam q0 R l l' dg s J tau := by
   intro hH P Wp Wq _ _ _ _ _ _ p lam b bv ga h q0 R l l' dg s J hNum hFam hL hR hco hz
   classical
-  haveI := FiniteDimensional.complete ℂ Wp
-  haveI := FiniteDimensional.complete ℂ Wq
   obtain ⟨-, hz1, hz2, -, -, ht1, ht2⟩ := p.hP
   obtain ⟨νq, νq', hS, hS'⟩ := GlobalTheory.T.besselDatum_both_sides_are_sides P.k P.r Wp Wq p.T.base P.u P.u' ht1 ht2
   have key : ∀ ν, ∃ t : Finset (Fin (2 * P.r + P.k + 1)) → ℂ,
@@ -172,15 +158,7 @@ theorem exists_tau : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAddCommGroup
     obtain ⟨io, pr, ep, hT⟩ := (GlobalTheory.T.pieri_tensor_decomposition hH P.k P.r lam P.u b bv ga h q0 R hNum hFam ν).1 (P.r + 1) hν1
     have hI : ∀ I : Sub (2 * P.r + P.k + 1) (P.r + 1), n1 (ν + eZ I.1) ≤ q0 := by
       intro I
-      have h1 : n1 (ν + eZ I.1) ≤ n1 ν + I.1.card := by
-        unfold n1 eZ
-        calc ∑ i, ((ν + fun i => if i ∈ I.1 then (1 : ℤ) else 0) i).natAbs
-            ≤ ∑ i, ((ν i).natAbs + if i ∈ I.1 then 1 else 0) := by
-              refine Finset.sum_le_sum fun i _ => ?_
-              simp only [Pi.add_apply]
-              split_ifs <;> omega
-          _ = ∑ i, (ν i).natAbs + I.1.card := by
-              rw [Finset.sum_add_distrib]; simp
+      have h1 := GlobalTheory.SuppliedPieri.n1_add_eZ_le ν I.1
       rw [I.2] at h1
       omega
     have hk : ∀ I : Sub (2 * P.r + P.k + 1) (P.r + 1), ∃ κ κ' : ℂ, J ν ≠ 0 →
@@ -191,9 +169,7 @@ theorem exists_tau : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAddCommGroup
       intro I
       by_cases hJ : J ν = 0
       · exact ⟨0, 0, fun h => absurd hJ h⟩
-      have hn : n1 ν ≤ q0 ∧ NzOn (R ν) (l ν) ∧ NzOn (R ν) (l' ν) := by
-        by_contra hc
-        exact hJ (hz ν hc)
+      have hn : n1 ν ≤ q0 ∧ NzOn (R ν) (l ν) ∧ NzOn (R ν) (l' ν) := not_not.1 (mt (hz ν) hJ)
       obtain ⟨κ, hκ⟩ := (GlobalTheory.T.bessel_tensor_projection_scalar_and_adjoint hH P.k P.r _ _ _ _ (P.r + 1) (R ν)
         (fun I : Sub (2 * P.r + P.k + 1) (P.r + 1) => R (ν + eZ I.1)) io pr ep _ _ _ Wp
         p.T.base.z p.T.base.π P.u p.T.base.μW p.T.base.μN p.T.base.μG νq
@@ -248,13 +224,10 @@ theorem suppliedData_exists : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAdd
 
 theorem sup_norm : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAddCommGroup Wp] [InnerProductSpace ℂ Wp] [NormedAddCommGroup Wq] [InnerProductSpace ℂ Wq] [FiniteDimensional ℂ Wp] [FiniteDimensional ℂ Wq] (p : KB.Pl P Wp Wq) (lam : Fin (2 * P.r + P.k + 1) → ℝ) (b bv ga h : ℝ) (q0 : ℕ) (R : (Fin (2 * P.r + P.k + 1) → ℤ) → Rep P.k P.r) (l : ∀ ν, (R ν).H → Wp) (l' : ∀ ν, (R ν).H → Wq) (dg : (Fin (2 * P.r + P.k + 1) → ℤ) → ℝ) (s : (Fin (2 * P.r + P.k + 1) → ℤ) → ℂ) (J : (Fin (2 * P.r + P.k + 1) → ℤ) → B.Mat P.k P.r → (Wq →L[ℂ] Wp)) (tau : (Fin (2 * P.r + P.k + 1) → ℤ) → Finset (Fin (2 * P.r + P.k + 1)) → ℂ), Num P.k P.r lam P.u b bv ga h q0 → Sup0 p lam q0 R l l' dg s J tau → ∃ c : ℝ, 0 < c ∧ ∀ ν, n1 ν ≤ q0 → (J ν = 0 ∧ TBB.jN2 p (J ν) = 0 ∧ ¬ (NzOn (R ν) (l ν) ∧ NzOn (R ν) (l' ν))) ∨ (J ν ≠ 0 ∧ NzOn (R ν) (l ν) ∧ NzOn (R ν) (l' ν) ∧ s ν ≠ 0 ∧ TBB.jN2 p (J ν) = ENNReal.ofReal (c * Formalism.QuantumDeterminants.fdegHC (fun a => lam a + (ν a : ℝ)))) := by
   intro hy P Wp Wq _ _ _ _ _ _ p lam b bv ga h q0 R l l' dg s J tau hN hS
-  haveI := FiniteDimensional.complete ℂ Wp
-  haveI := FiniteDimensional.complete ℂ Wq
   obtain ⟨c₁, hc₁, h1⟩ := GlobalTheory.T.bessel_setting_uniform_constant hy P.k P.r Wp Wq p.T.base
-  have hH : PI.BesselPeriodGGP.IsHaarOn (GG P.k P.r) p.T.base.μG := by
-    haveI : IsFiniteMeasureOnCompacts p.T.base.μG := ⟨fun K hK => p.T.base.haarG.finite_compact K hK⟩
-    haveI : IsLocallyFiniteMeasure p.T.base.μG := inferInstance
-    exact ⟨inferInstance, p.T.base.haarG.ne_zero, p.T.base.haarG.conc, p.T.base.haarG.left⟩
+  have hH : PI.BesselPeriodGGP.IsHaarOn (GG P.k P.r) p.T.base.μG :=
+    have : IsFiniteMeasureOnCompacts p.T.base.μG := ⟨p.T.base.haarG.finite_compact⟩
+    ⟨inferInstance, p.T.base.haarG.ne_zero, p.T.base.haarG.conc, p.T.base.haarG.left⟩
   obtain ⟨c₂, hc₂, h2⟩ := GlobalTheory.BesselDegree.schur_fdeg hy P.k P.r (PI.BesselPeriodGGP.eps48 P.k P.r) _ hH
   obtain ⟨⟨-, -, -, -, hgap⟩, hfam⟩ := GlobalTheory.NumFam.num_fam P.k P.r lam P.u b bv ga h q0 hN
   refine ⟨c₁ * c₂, mul_pos hc₁ hc₂, fun ν hν => ?_⟩
@@ -263,9 +236,7 @@ theorem sup_norm : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAddCommGroup W
   obtain ⟨hl', -, -⟩ := hS.right ν hν
   have hP := h1 _ _ (h / 2) (R ν) (l ν) (l' ν) (dg ν) hDS (hfam ν hν).2.2.1 hgap hl hl' hfd
   have h0 : TBB.jN2 p (0 : B.Mat P.k P.r → (Wq →L[ℂ] Wp)) = 0 := by
-    rw [GlobalTheory.T.jN2_eq_normSq_base, hP 0 0 ⟨0, fun i => i.elim0, fun i => i.elim0, fun i => i.elim0, fun i => i.elim0,
-      fun g _ => by simp, by simp⟩]
-    simp
+    simpa [Pi.zero_def] using Formalism.FourierDecayAlt.P.CutBP.norm_sq_const_smul p 0 0
   by_cases hnz : NzOn (R ν) (l ν) ∧ NzOn (R ν) (l' ν)
   · right
     obtain ⟨hc, hs⟩ := hS.coef ν hν hnz.1 hnz.2
@@ -280,12 +251,8 @@ theorem sup_norm : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAddCommGroup W
     have hd : dg ν = c₂ * Formalism.QuantumDeterminants.fdegHC (fun a => lam a + (ν a : ℝ)) := by
       rw [← hfd w hw0, (h2 _ (R ν) hDS).1 w hw0]
     refine ⟨?_, hnz.1, hnz.2, ?_, ?_⟩
-    · intro hJ
-      rw [hJ, h0] at hj
-      exact absurd hj.symm (ENNReal.ofReal_pos.2 (mul_pos hc₁ hdg)).ne'
-    · intro hs0
-      rw [hs0, norm_zero] at hs
-      exact hdg.ne hs
+    · exact fun hJ => (ENNReal.ofReal_pos.2 (mul_pos hc₁ hdg)).ne' (hj.symm.trans (by rw [hJ, h0]))
+    · exact fun hs0 => hdg.ne' (by rw [← hs, hs0, norm_zero])
     · rw [hj, hd, mul_assoc]
   · left
     have hJ := hS.zero ν (fun hh => hnz hh.2)
@@ -332,18 +299,13 @@ theorem sup_meas : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAddCommGroup W
 theorem tau_bound : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAddCommGroup Wp] [InnerProductSpace ℂ Wp] [NormedAddCommGroup Wq] [InnerProductSpace ℂ Wq] [FiniteDimensional ℂ Wp] [FiniteDimensional ℂ Wq] (p : KB.Pl P Wp Wq) (lam : Fin (2 * P.r + P.k + 1) → ℝ) (b bv ga h : ℝ) (q0 : ℕ) (R : (Fin (2 * P.r + P.k + 1) → ℤ) → Rep P.k P.r) (l : ∀ ν, (R ν).H → Wp) (l' : ∀ ν, (R ν).H → Wq) (dg : (Fin (2 * P.r + P.k + 1) → ℤ) → ℝ) (s : (Fin (2 * P.r + P.k + 1) → ℤ) → ℂ) (J : (Fin (2 * P.r + P.k + 1) → ℤ) → B.Mat P.k P.r → (Wq →L[ℂ] Wp)) (tau : (Fin (2 * P.r + P.k + 1) → ℤ) → Finset (Fin (2 * P.r + P.k + 1)) → ℂ), Num P.k P.r lam P.u b bv ga h q0 → Num P.k P.r lam P.u' b bv ga h q0 → Sup0 p lam q0 R l l' dg s J tau → ∀ ν, n1 ν + (P.r + 1) * (P.r + 2) ≤ q0 → ∀ I : Finset (Fin (2 * P.r + P.k + 1)), I.card = P.r + 1 → ‖tau ν I‖ ≤ Real.sqrt (Hsq P.r P.T b * Hsq P.r P.T' b) ^ (P.r + 1) := by
   intro hyp P Wp Wq _ _ _ _ _ _ p lam b bv ga h q0 R l l' dg s J tau hN hN' hS ν hν I hI
   classical
-  haveI := FiniteDimensional.complete ℂ Wp
-  haveI := FiniteDimensional.complete ℂ Wq
   by_cases hz : J ν = 0 ∨ J (ν + eZ I) = 0
   · rw [hS.tau_zero ν I hz, norm_zero]
     positivity
   rw [not_or] at hz
-  have h1 : n1 ν ≤ q0 ∧ NzOn (R ν) (l ν) ∧ NzOn (R ν) (l' ν) := by
-    by_contra hc
-    exact hz.1 (hS.zero ν hc)
-  have h2 : n1 (ν + eZ I) ≤ q0 ∧ NzOn (R (ν + eZ I)) (l (ν + eZ I)) ∧ NzOn (R (ν + eZ I)) (l' (ν + eZ I)) := by
-    by_contra hc
-    exact hz.2 (hS.zero _ hc)
+  have h1 : n1 ν ≤ q0 ∧ NzOn (R ν) (l ν) ∧ NzOn (R ν) (l' ν) := not_not.1 (mt (hS.zero ν) hz.1)
+  have h2 : n1 (ν + eZ I) ≤ q0 ∧ NzOn (R (ν + eZ I)) (l (ν + eZ I)) ∧ NzOn (R (ν + eZ I)) (l' (ν + eZ I)) :=
+    not_not.1 (mt (hS.zero _) hz.2)
   obtain ⟨-, -, -, hT, hT', hty, hty'⟩ := p.hP
   obtain ⟨νq, νq', hG, hG'⟩ := GlobalTheory.T.besselDatum_both_sides_are_sides P.k P.r Wp Wq p.T.base P.u P.u' hty hty'
   obtain ⟨io, pr, ep, hTens, hκ⟩ := hS.tau_eq ν hν
@@ -366,8 +328,6 @@ theorem tau_bound : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAddCommGroup 
 
 theorem supplied_pieri : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAddCommGroup Wp] [InnerProductSpace ℂ Wp] [NormedAddCommGroup Wq] [InnerProductSpace ℂ Wq] [FiniteDimensional ℂ Wp] [FiniteDimensional ℂ Wq] (p : KB.Pl P Wp Wq) (lam : Fin (2 * P.r + P.k + 1) → ℝ) (b bv ga h : ℝ) (q0 : ℕ) (R : (Fin (2 * P.r + P.k + 1) → ℤ) → Rep P.k P.r) (l : ∀ ν, (R ν).H → Wp) (l' : ∀ ν, (R ν).H → Wq) (dg : (Fin (2 * P.r + P.k + 1) → ℤ) → ℝ) (s : (Fin (2 * P.r + P.k + 1) → ℤ) → ℂ) (J : (Fin (2 * P.r + P.k + 1) → ℤ) → B.Mat P.k P.r → (Wq →L[ℂ] Wp)) (tau : (Fin (2 * P.r + P.k + 1) → ℤ) → Finset (Fin (2 * P.r + P.k + 1)) → ℂ), Num P.k P.r lam P.u b bv ga h q0 → Sup0 p lam q0 R l l' dg s J tau → ∀ ν, n1 ν + (P.r + 1) * (P.r + 2) ≤ q0 → ∀ c : Fin (P.r + 1) → ℂ, D.IsLocPt (TBB.bigPt P.r c) (P.r + 1) → 0 < TBB.Gp p (TBB.bigPt P.r c) → (D.ptMatN (TBB.bigPt P.r c) (P.r + 1)).det • p.V (J ν) (TBB.bigPt P.r c) = ∑ I ∈ powersetCard (P.r + 1) (univ : Finset (Fin (2 * P.r + P.k + 1))), tau ν I • p.V (J (ν + eZ I)) (TBB.bigPt P.r c) := by
   intro H P Wp Wq _ _ _ _ _ _ p lam b bv ga h q0 R l l' dg s J tau hN hS ν hν c hc hG
-  haveI := FiniteDimensional.complete ℂ Wp
-  haveI := FiniteDimensional.complete ℂ Wq
   obtain ⟨γ, hγ, hZ, hV⟩ := GlobalTheory.T.exists_regularRep_besselBigCellVector_eq_bessel P Wp Wq p c hc hG
   simp only [hV]
   by_cases hJ : J ν = 0
@@ -385,9 +345,7 @@ theorem supplied_pieri : Hyps → ∀ (P : M.Par) (Wp Wq : Type) [NormedAddCommG
     have h2 : P.r + 1 ≤ (P.r + 1) * (P.r + 2) := Nat.le_mul_of_pos_right _ (by omega)
     omega
   obtain ⟨io, pr, ep, hT, htau⟩ := hS.tau_eq ν hν
-  have hnz : NzOn (R ν) (l ν) ∧ NzOn (R ν) (l' ν) := by
-    by_contra hcon
-    exact hJ (hS.zero ν fun hh => hcon hh.2)
+  have hnz : NzOn (R ν) (l ν) ∧ NzOn (R ν) (l' ν) := (not_not.1 (mt (hS.zero ν) hJ)).2
   have key := GlobalTheory.T.tensor_weighted_bessel_gap H P.k P.r (Sub (2 * P.r + P.k + 1) (P.r + 1)) (Sub (2 * P.r + P.k + 1) (P.r + 1))
     (cmp (P.r + 1)) (cmp (P.r + 1) (Formalism.QuantumDeterminants.Hpk P.k P.r)) (P.r + 1) (R ν) (fun I => R (ν + eZ I.1)) io pr ep
     (PI.BesselPeriodGGP.eps48 P.k P.r) (fun a => lam a + (ν a : ℝ))
